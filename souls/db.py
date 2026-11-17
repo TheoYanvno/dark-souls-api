@@ -23,6 +23,27 @@ CREATE TABLE IF NOT EXISTS classes (
     name TEXT NOT NULL,
     level INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS characters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    class TEXT NOT NULL REFERENCES classes(slug),
+    level INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS victories (
+    character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+    boss TEXT NOT NULL REFERENCES bosses(slug),
+    beaten_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (character_id, boss)
+);
+CREATE TABLE IF NOT EXISTS deaths (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+    area TEXT NOT NULL REFERENCES areas(slug),
+    cause TEXT,
+    died_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS deaths_by_character ON deaths(character_id);
 """
 
 
@@ -39,7 +60,8 @@ def _load(name):
 
 
 def init(path):
-    """Create the tables and load the game data. Safe to run again: rows are updated, never duplicated."""
+    """Create the tables and load the game data. Safe to run again: rows are updated, never duplicated,
+    and players' characters are never touched."""
     conn = connect(path)
     with conn:
         conn.executescript(SCHEMA)

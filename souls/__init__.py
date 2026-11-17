@@ -1,4 +1,5 @@
-"""Dark Souls REST API: browse the game's areas, bosses and starting classes."""
+"""Dark Souls REST API: browse the game's areas, bosses and starting classes, and track your own
+characters' victories and deaths."""
 from flask import Flask, g, jsonify
 
 from . import db

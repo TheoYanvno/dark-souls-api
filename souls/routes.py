@@ -1,7 +1,8 @@
-"""The endpoints. Each one reads the request, checks it, calls store.py, and picks the status code."""
+"""The endpoints. Each one reads the request, asks validate.py for problems, calls store.py, and picks
+the status code."""
 from flask import Blueprint, current_app, g, jsonify, request
 
-from . import db, store
+from . import db, store, validate
 
 api = Blueprint("api", __name__)
 
@@ -14,6 +15,11 @@ def conn():
 
 def errors(status, *messages):
     return jsonify({"errors": list(messages)}), status
+
+
+def body():
+    data = request.get_json(silent=True)
+    return data if isinstance(data, dict) else None
 
 
 def page_args():
@@ -77,3 +83,107 @@ def classes():
     return jsonify(store.list_classes(conn()))
 
 
+# --- characters --------------------------------------------------------------------------------
+
+def find_character(character_id):
+    return store.get_character(conn(), character_id)
+
+
+@api.get("/characters")
+def characters():
+    return jsonify(store.list_characters(conn()))
+
+
+@api.post("/characters")
+def create_character():
+    data = body()
+    if data is None:
+        return errors(400, "send a JSON object")
+    problems = validate.new_character(data, lambda c: store.get_class(conn(), c) is not None)
+    if problems:
+        return errors(400, *problems)
+    created = store.create_character(conn(), data["name"].strip(), data["class"])
+    return jsonify(created), 201, {"Location": f"/api/characters/{created['id']}"}
+
+
+@api.get("/characters/<int:character_id>")
+def character(character_id):
+    found = find_character(character_id)
+    if not found:
+        return errors(404, f"no character {character_id}")
+    return jsonify({**found, "victories": store.list_victories(conn(), character_id)})
+
+
+@api.patch("/characters/<int:character_id>")
+def change_character(character_id):
+    found = find_character(character_id)
+    if not found:
+        return errors(404, f"no character {character_id}")
+    data = body()
+    if data is None:
+        return errors(400, "send a JSON object")
+    start = store.get_class(conn(), found["class"])["level"]
+    problems = validate.character_changes(data, start)
+    if problems:
+        return errors(400, *problems)
+    if "name" in data:
+        data["name"] = data["name"].strip()
+    return jsonify(store.update_character(conn(), character_id, data))
+
+
+@api.delete("/characters/<int:character_id>")
+def remove_character(character_id):
+    if not store.delete_character(conn(), character_id):
+        return errors(404, f"no character {character_id}")
+    return "", 204
+
+
+@api.post("/characters/<int:character_id>/victories")
+def add_victory(character_id):
+    if not find_character(character_id):
+        return errors(404, f"no character {character_id}")
+    data = body()
+    slug = data.get("boss") if data else None
+    if not isinstance(slug, str) or not slug:
+        return errors(400, "boss is required (see GET /api/bosses)")
+    if not store.get_boss(conn(), slug):
+        return errors(404, f"no boss '{slug}'")
+    if not store.add_victory(conn(), character_id, slug):
+        return errors(409, f"character {character_id} has already beaten {slug}")
+    return jsonify(store.progress(conn(), character_id)), 201
+
+
+@api.delete("/characters/<int:character_id>/victories/<slug>")
+def remove_victory(character_id, slug):
+    if not find_character(character_id):
+        return errors(404, f"no character {character_id}")
+    if not store.remove_victory(conn(), character_id, slug):
+        return errors(404, f"character {character_id} hasn't beaten '{slug}'")
+    return "", 204
+
+
+@api.post("/characters/<int:character_id>/deaths")
+def add_death(character_id):
+    if not find_character(character_id):
+        return errors(404, f"no character {character_id}")
+    data = body()
+    if data is None:
+        return errors(400, "send a JSON object")
+    problems = validate.new_death(data, lambda a: store.area_exists(conn(), a))
+    if problems:
+        return errors(400, *problems)
+    return jsonify(store.add_death(conn(), character_id, data["area"], data.get("cause"))), 201
+
+
+@api.get("/characters/<int:character_id>/deaths")
+def deaths(character_id):
+    if not find_character(character_id):
+        return errors(404, f"no character {character_id}")
+    return jsonify(store.deaths_by_area(conn(), character_id))
+
+
+@api.get("/characters/<int:character_id>/progress")
+def progress(character_id):
+    if not find_character(character_id):
+        return errors(404, f"no character {character_id}")
+    return jsonify(store.progress(conn(), character_id))

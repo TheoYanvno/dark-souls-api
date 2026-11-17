@@ -6,3 +6,23 @@ GET {{api}}/bosses?required=true
 ###
 GET {{api}}/areas/anor-londo
 
+###
+POST {{api}}/characters
+Content-Type: application/json
+
+{"name": "Solaire", "class": "knight"}
+
+###
+POST {{api}}/characters/1/victories
+Content-Type: application/json
+
+{"boss": "asylum-demon"}
+
+###
+POST {{api}}/characters/1/deaths
+Content-Type: application/json
+
+{"area": "blighttown", "cause": "fell off a ledge"}
+
+###
+GET {{api}}/characters/1/progress
