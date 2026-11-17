@@ -1,0 +1,12 @@
+[
+  {"slug": "warrior", "name": "Warrior", "level": 4},
+  {"slug": "knight", "name": "Knight", "level": 5},
+  {"slug": "wanderer", "name": "Wanderer", "level": 3},
+  {"slug": "thief", "name": "Thief", "level": 5},
+  {"slug": "bandit", "name": "Bandit", "level": 4},
+  {"slug": "hunter", "name": "Hunter", "level": 4},
+  {"slug": "sorcerer", "name": "Sorcerer", "level": 3},
+  {"slug": "pyromancer", "name": "Pyromancer", "level": 1},
+  {"slug": "cleric", "name": "Cleric", "level": 2},
+  {"slug": "deprived", "name": "Deprived", "level": 6}
+]

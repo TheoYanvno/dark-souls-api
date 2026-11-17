@@ -1,0 +1,8 @@
+### Try each endpoint from VS Code: install the REST Client extension and click "Send Request".
+@api = http://127.0.0.1:5000/api
+
+GET {{api}}/bosses?required=true
+
+###
+GET {{api}}/areas/anor-londo
+
